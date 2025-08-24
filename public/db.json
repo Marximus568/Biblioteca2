@@ -1,0 +1,22 @@
+{
+  "user": [
+    {
+      "username": "admin",
+      "password": "admin123",
+      "role": "admin",
+      "id": "1280"
+    }
+  ],
+  "books": [
+    {
+      "title": "Sample Book",
+      "author": "Author Name",
+      "editorial": "Sample Editorial",
+      "year": 2023,
+      "genre": "Fictiondfdf",
+      "code": "SB2023",
+      "link": "https://drive.google.com/file/d/1VIbL1ZuWSd0PjuSdd4qyXG0IYRy87tnP/view",
+      "id": "2"
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+
+export function settingsAdmin() {
+   // --- Configuración API ---
+const API_BASE_URL = 'http://localhost:3000';
+const API_BOOKS_URL = `${API_BASE_URL}/books`;
+
+// Variables globales
+let books = [];
+let editingBookId = null;
+let bookToDelete = null;
+let elements = {};
+
+// --- Helper: manejar respuestas fetch ---
+async function handleFetchResponse(response) {
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+    }
+    return await response.text();
+}
+
+// --- Inicializar referencias a elementos DOM ---
+async function initializeElements() {
+    return new Promise((resolve) => {
+        const checkElements = () => {
+            elements = {
+                showFormBtn: document.getElementById('showFormBtn'),
+                logoutBtn: document.getElementById('logoutBtn'),
+                formContainer: document.getElementById('formContainer'),
+                bookForm: document.getElementById('bookForm'),
+                formTitle: document.getElementById('formTitle'),
+                cancelBtn: document.getElementById('cancelBtn'),
+                saveBtn: document.getElementById('saveBtn'),
+                bookId: document.getElementById('bookId'),
+                title: document.getElementById('title'),
+                author: document.getElementById('author'),
+                editorial: document.getElementById('editorial'),
+                year: document.getElementById('year'),
+                genre: document.getElementById('genre'),
+                code: document.getElementById('code'),
+                link: document.getElementById('link'),
+                booksTable: document.getElementById('booksTable'),
+                loadingSpinner: document.getElementById('loadingSpinner'),
+                notification: document.getElementById('notification'),
+                noBooks: document.getElementById('noBooks'),
+                confirmModal: document.getElementById('confirmModal'),
+                confirmDelete: document.getElementById('confirmDelete'),
+                cancelDelete: document.getElementById('cancelDelete')
+            };
+            const allFound = Object.values(elements).every(e => e !== null);
+            if (allFound) resolve();
+            else setTimeout(checkElements, 50);
+        };
+        checkElements();
+    });
+}
+
+// --- Eventos ---
+async function setupEventListeners() {
+    elements.showFormBtn.addEventListener('click', showCreateForm);
+    elements.cancelBtn.addEventListener('click', hideForm);
+    elements.bookForm.addEventListener('submit', handleSubmit);
+    elements.logoutBtn.addEventListener('click', handleLogout);
+    elements.confirmDelete.addEventListener('click', confirmDelete);
+    elements.cancelDelete.addEventListener('click', hideConfirmModal);
+}
+
+// --- Cargar libros desde API y renderizar ---
+async function loadBooks() {
+    showLoading(true);
+    try {
+        const resp = await fetch(API_BOOKS_URL);
+        const data = await handleFetchResponse(resp);
+        books = Array.isArray(data) ? data : Object.values(data || {});
+        renderBooks();
+    } catch (err) {
+        console.error('Error cargando libros:', err);
+        books = [];
+        renderBooks();
+        showNotification(`Error al cargar libros: ${err.message}`, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function renderBooks() {
+    const tbody = elements.booksTable;
+    tbody.innerHTML = '';
+    if (books.length === 0) {
+        elements.noBooks.classList.remove('hidden');
+        return;
+    }
+    elements.noBooks.classList.add('hidden');
+    tbody.innerHTML = books.map(book => `
+        <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">${book.id || ''}</td>
+            <td class="px-4 py-3">${escapeHtml(book.title || '')}</td>
+            <td class="px-4 py-3">${escapeHtml(book.author || '')}</td>
+            <td class="px-4 py-3">${escapeHtml(book.editorial || '')}</td>
+            <td class="px-4 py-3">${book.year || ''}</td>
+            <td class="px-4 py-3">${escapeHtml(book.genre || '')}</td>
+            <td class="px-4 py-3">${escapeHtml(book.code || '')}</td>
+            <td class="px-4 py-3">
+                ${book.link ? `<a href="${book.link}" target="_blank" class="text-blue-500 underline">Ver enlace</a>` : ''}
+            </td>
+            <td class="px-4 py-3 flex gap-2">
+                <button onclick="editBook('${book.id}')" class="bg-yellow-500 text-white px-2 py-1 rounded">Editar</button>
+                <button onclick="deleteBook('${book.id}')" class="bg-red-500 text-white px-2 py-1 rounded">Eliminar</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// --- Crear/editar libro ---
+async function handleSubmit(e) {
+    e.preventDefault();
+    const bookData = {
+        title: elements.title.value.trim(),
+        author: elements.author.value.trim(),
+        editorial: elements.editorial.value.trim(),
+        year: parseInt(elements.year.value),
+        genre: elements.genre.value.trim(),
+        code: elements.code.value.trim(),
+        link: elements.link.value.trim()
+    };
+    try {
+        let resp;
+        if (editingBookId) {
+            resp = await fetch(`${API_BOOKS_URL}/${editingBookId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookData)
+            });
+        } else {
+            resp = await fetch(API_BOOKS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookData)
+            });
+        }
+        await handleFetchResponse(resp);
+        hideForm();
+        loadBooks();
+        showNotification(editingBookId ? 'Libro actualizado' : 'Libro creado', 'success');
+    } catch (err) {
+        console.error('Error guardando libro', err);
+        showNotification('Error guardando libro', 'error');
+    }
+}
+
+function showCreateForm() {
+    editingBookId = null;
+    elements.formTitle.textContent = 'Agregar Nuevo Libro';
+    elements.formContainer.classList.remove('hidden');
+    elements.bookForm.reset();
+}
+
+function showEditForm(book) {
+    editingBookId = book.id;
+    elements.formTitle.textContent = 'Editar Libro';
+    elements.formContainer.classList.remove('hidden');
+    elements.bookId.value = book.id;
+    elements.title.value = book.title;
+    elements.author.value = book.author;
+    elements.editorial.value = book.editorial;
+    elements.year.value = book.year;
+    elements.genre.value = book.genre;
+    elements.code.value = book.code;
+    elements.link.value = book.link;
+}
+
+function hideForm() {
+    elements.formContainer.classList.add('hidden');
+    editingBookId = null;
+}
+
+function editBook(id) {
+    const b = books.find(x => x.id == id);
+    if (b) showEditForm(b);
+}
+function deleteBook(id) { bookToDelete = id; elements.confirmModal.classList.remove('hidden'); }
+async function confirmDelete() {
+    if (!bookToDelete) return;
+    try {
+        const resp = await fetch(`${API_BOOKS_URL}/${bookToDelete}`, { method: 'DELETE' });
+        await handleFetchResponse(resp);
+        showNotification('Libro eliminado', 'success');
+        loadBooks();
+    } catch (err) {
+        showNotification('Error eliminando', 'error');
+    } finally {
+        hideConfirmModal();
+    }
+}
+function hideConfirmModal() {
+    elements.confirmModal.classList.add('hidden');
+    bookToDelete = null;
+}
+function escapeHtml(txt) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return txt.replace(/[&<>"']/g, m => map[m]);
+}
+
+function showNotification(msg, type) {
+    elements.notification.textContent = msg;
+    elements.notification.className = `mb-4 p-4 rounded ${type==='success'?'bg-green-100 text-green-700 border border-green-400':'bg-red-100 text-red-700 border border-red-400'}`;
+    elements.notification.classList.remove('hidden');
+    setTimeout(()=>elements.notification.classList.add('hidden'),5000);
+}
+function showLoading(show){
+    if (show) elements.loadingSpinner.classList.remove('hidden');
+    else elements.loadingSpinner.classList.add('hidden');
+}
+function handleLogout(){
+    if(confirm('¿Cerrar sesión?')) window.location.href='/login';
+}
+
+// --- Inicializar aplicación ---
+async function initializeApp(){
+    await initializeElements();
+    await setupEventListeners();
+    await loadBooks();
+}
+if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',initializeApp);
+}else{
+    initializeApp();
+}
+window.editBook = editBook;
+window.deleteBook = deleteBook;
+
+      }

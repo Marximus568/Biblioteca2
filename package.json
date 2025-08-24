@@ -1,0 +1,25 @@
+
+{
+  "name": "vite-project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.0.4"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
+    "express": "^5.1.0",
+    "json-server": "^1.0.0-beta.3",
+    "mysql2": "^3.14.3",
+    "nodemon": "^3.1.10",
+    "tailwindcss": "^4.1.11"
+  }
+}
