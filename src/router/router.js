@@ -1,13 +1,14 @@
+import { protectRoute } from "../tools/tools.js"; // o como hayas guardado ese archivo
+import { renderHome } from "../views/home";
+import { login } from "../views/login";
+import { register } from "../views/register";
+import { adminViews } from "../views/adminviews";
+import { customerViews } from "../views/customerviews";
 import { settingsAdmin } from "../js/admin.js";
 import { settingLogin } from "../js/login.js";
 import { settingsregister } from "../js/register.js";
 import { userviews } from "../js/user.js";
-import { adminViews } from "../views/adminviews";
-import { customerViews } from "../views/customerviews";
-import { renderHome } from "../views/home";
-import { login } from "../views/login";
 import { notFound } from "../views/notFound";
-import { register } from "../views/register";
 
 const routes = {
   "/": {
@@ -22,23 +23,23 @@ const routes = {
   },
   "/login": {
     showView: login(),
-    afterRender: settingLogin,  
+    afterRender: settingLogin,
     private: false,
   },
   "/register": {
     showView: register(),
-    afterRender: settingsregister, 
+    afterRender: settingsregister,
     private: false,
   },
   "/customerviews": {
     showView: customerViews(),
     afterRender: userviews,
-    private: false,
+    private: true,
   },
   "/adminviews": {
     showView: adminViews(),
     afterRender: settingsAdmin,
-    private: false,
+    private: true,
   },
   "/notFound": {
     showView: notFound(),
@@ -53,10 +54,15 @@ export function router() {
   const currentRoute = routes[path];
 
   if (currentRoute) {
-    // Renderiza la vista
+    // 👇 proteger rutas privadas
+    if (currentRoute.private && !protectRoute()) {
+      return; // protectRoute ya redirige al login
+    }
+
+    // Renderizar la vista
     app.innerHTML = currentRoute.showView;
 
-    // Ejecuta el afterRender si existe y es una función
+    // Ejecutar lógica de la vista
     if (typeof currentRoute.afterRender === "function") {
       currentRoute.afterRender();
     }
