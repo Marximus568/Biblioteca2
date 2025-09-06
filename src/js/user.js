@@ -2,7 +2,14 @@ import { getCurrentUser } from "../tools/tools.js";
 
 export async function userviews() {
 
+ const userNameEl = document.getElementById('userName');
+  const currentUser = getCurrentUser();
 
+  if (currentUser && currentUser.nombre_completo) {
+    userNameEl.textContent = currentUser.nombre_completo;
+  } else {
+    userNameEl.textContent = 'Invitado';
+  }
 // Logout
 const logoutBtn = document.getElementById("logoutBtn");
 if (logoutBtn) {
