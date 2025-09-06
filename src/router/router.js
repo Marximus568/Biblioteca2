@@ -40,6 +40,7 @@ const routes = {
     showView: adminViews(),
     afterRender: settingsAdmin,
     private: true,
+     requireAdmin: true,
   },
   "/notFound": {
     showView: notFound(),
@@ -47,22 +48,30 @@ const routes = {
     private: false,
   },
 };
-
 export function router() {
   const path = window.location.pathname || "/";
   const app = document.getElementById("app");
   const currentRoute = routes[path];
 
   if (currentRoute) {
-    // 👇 proteger rutas privadas
-    if (currentRoute.private && !protectRoute()) {
-      return; // protectRoute ya redirige al login
+    // Primero: verificar autenticación
+    if (currentRoute.private && !window.routeProtection.protectRoute()) {
+      return; // redirigido al login
+    }
+
+    // Segundo: verificar permisos especiales (ej. admin)
+    if (currentRoute.requireAdmin && !window.routeProtection.requireAdmin()) {
+      console.warn("Acceso denegado: necesitas ser admin");
+      // Redirigir al home o a un notFound
+      window.history.pushState({}, "", "/notFound");
+      window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
+      return;
     }
 
     // Renderizar la vista
     app.innerHTML = currentRoute.showView;
 
-    // Ejecutar lógica de la vista
+    // Ejecutar afterRender si existe
     if (typeof currentRoute.afterRender === "function") {
       currentRoute.afterRender();
     }
@@ -70,3 +79,4 @@ export function router() {
     app.innerHTML = notFound();
   }
 }
+

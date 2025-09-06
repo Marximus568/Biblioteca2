@@ -4,8 +4,8 @@ export function userviews() {
     logoutBtn.addEventListener("click", () => {
       window.loginUtils.logout();
     });
-    console.log("Listener de logout agregado ✅");
+    console.log("Listener de logout agregado ");
   } else {
-    console.error("No se encontró el botón de logout ❌");
+    console.error("No se encontró el botón de logout ");
   }
 }
