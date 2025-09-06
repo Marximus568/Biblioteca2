@@ -1,8 +1,7 @@
-
 export function settingsAdmin() {
    // --- Configuración API ---
 const API_BASE_URL = 'http://localhost:3000';
-const API_BOOKS_URL = `${API_BASE_URL}/books`;
+const API_BOOKS_URL = `${API_BASE_URL}/libros`;
 
 // Variables globales
 let books = [];
@@ -86,7 +85,6 @@ async function loadBooks() {
         showLoading(false);
     }
 }
-
 function renderBooks() {
     const tbody = elements.booksTable;
     tbody.innerHTML = '';
@@ -97,19 +95,19 @@ function renderBooks() {
     elements.noBooks.classList.add('hidden');
     tbody.innerHTML = books.map(book => `
         <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3">${book.id || ''}</td>
-            <td class="px-4 py-3">${escapeHtml(book.title || '')}</td>
-            <td class="px-4 py-3">${escapeHtml(book.author || '')}</td>
+            <td class="px-4 py-3">${book.isbn || ''}</td>
+            <td class="px-4 py-3">${escapeHtml(book.titulo || '')}</td>
+            <td class="px-4 py-3">${escapeHtml(book.autor || '')}</td>
             <td class="px-4 py-3">${escapeHtml(book.editorial || '')}</td>
-            <td class="px-4 py-3">${book.year || ''}</td>
-            <td class="px-4 py-3">${escapeHtml(book.genre || '')}</td>
+            <td class="px-4 py-3">${book.anio_publicacion || ''}</td>
+            <td class="px-4 py-3">${escapeHtml(book.genero || '')}</td> <!-- Agregado -->
             <td class="px-4 py-3">${escapeHtml(book.isbn || '')}</td>
             <td class="px-4 py-3">
                 ${book.link ? `<a href="${book.link}" target="_blank" class="text-blue-500 underline">Ver enlace</a>` : ''}
             </td>
             <td class="px-4 py-3 flex gap-2">
-                <button onclick="editBook('${book.id}')" class="bg-yellow-500 text-white px-2 py-1 rounded">Editar</button>
-                <button onclick="deleteBook('${book.id}')" class="bg-red-500 text-white px-2 py-1 rounded">Eliminar</button>
+                <button onclick="editBook('${book.isbn}')" class="bg-yellow-500 text-white px-2 py-1 rounded">Editar</button>
+                <button onclick="deleteBook('${book.isbn}')" class="bg-red-500 text-white px-2 py-1 rounded">Eliminar</button>
             </td>
         </tr>
     `).join('');
@@ -119,12 +117,13 @@ function renderBooks() {
 async function handleSubmit(e) {
     e.preventDefault();
     const bookData = {
-        isbn: elements.isbn.value.trim(),
-        title: elements.title.value.trim(),
-        author: elements.author.value.trim(),
+        isbn: elements.code.value.trim(),
+        titulo: elements.title.value.trim(),
+        autor: elements.author.value.trim(),
         editorial: elements.editorial.value.trim(),
-        year: parseInt(elements.year.value),
-        genre: elements.genre.value.trim(),
+        anio_publicacion: parseInt(elements.year.value),
+        genero: elements.genre.value.trim(), 
+        estado: "disponible",
         link: elements.link.value.trim()
     };
     try {
@@ -152,6 +151,19 @@ async function handleSubmit(e) {
     }
 }
 
+function showEditForm(book) {
+    editingBookId = book.isbn;
+    elements.formTitle.textContent = 'Editar Libro';
+    elements.formContainer.classList.remove('hidden');
+    elements.bookId.value = book.isbn;
+    elements.title.value = book.titulo;
+    elements.author.value = book.autor;
+    elements.editorial.value = book.editorial;
+    elements.year.value = book.anio_publicacion;
+    elements.code.value = book.isbn;
+    elements.link.value = book.link;
+}
+
 function showCreateForm() {
     editingBookId = null;
     elements.formTitle.textContent = 'Agregar Nuevo Libro';
@@ -160,16 +172,16 @@ function showCreateForm() {
 }
 
 function showEditForm(book) {
-    editingBookId = book.id;
+    editingBookId = book.isbn;
     elements.formTitle.textContent = 'Editar Libro';
     elements.formContainer.classList.remove('hidden');
-    elements.bookId.value = book.id;
-    elements.title.value = book.title;
-    elements.author.value = book.author;
+    elements.bookId.value = book.isbn;
+    elements.title.value = book.titulo;
+    elements.author.value = book.autor;
     elements.editorial.value = book.editorial;
-    elements.year.value = book.year;
-    elements.genre.value = book.genre;
-    elements.code.value = book.code;
+    elements.year.value = book.anio_publicacion;
+    elements.genre.value = book.genero;
+    elements.code.value = book.isbn;
     elements.link.value = book.link;
 }
 
@@ -178,11 +190,14 @@ function hideForm() {
     editingBookId = null;
 }
 
-function editBook(id) {
-    const b = books.find(x => x.id == id);
+function editBook(isbn) {
+    const b = books.find(x => x.isbn == isbn);
     if (b) showEditForm(b);
 }
-function deleteBook(id) { bookToDelete = id; elements.confirmModal.classList.remove('hidden'); }
+function deleteBook(isbn) {
+    bookToDelete = isbn;
+    elements.confirmModal.classList.remove('hidden');
+}
 async function confirmDelete() {
     if (!bookToDelete) return;
     try {

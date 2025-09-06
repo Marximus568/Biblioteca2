@@ -1,4 +1,3 @@
-
 export function adminViews() {
   return `
 <body class="bg-gray-100 p-6">
@@ -62,7 +61,6 @@ export function adminViews() {
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Género</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enlace</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="booksTable" class="bg-white divide-y divide-gray-200"></tbody>
@@ -94,4 +92,5 @@ export function adminViews() {
             </div>
         </div>
     </div>
-`}
+`;
+}

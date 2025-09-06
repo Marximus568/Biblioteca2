@@ -178,7 +178,7 @@ app.put('/libros/:id', async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { titulo, editorial, anio_publicacion, estado, autor, link } = req.body;
+    const { titulo, editorial, anio_publicacion, genre, estado, autor, link } = req.body;
     const isbn = req.params.id;
 
     if (!titulo || !isbn) {
@@ -187,8 +187,8 @@ app.put('/libros/:id', async (req, res) => {
 
     // Actualizar el libro
     const [result] = await connection.execute(
-      'UPDATE libros SET titulo = ?, editorial = ?, anio_publicacion = ?, estado = ?, autor = ?, link = ? WHERE isbn = ?',
-      [titulo, editorial, anio_publicacion, estado, autor, link, isbn]
+      'UPDATE libros SET titulo = ?, editorial = ?, anio_publicacion = ?,genre = ?, estado = ?, autor = ?, link = ? WHERE isbn = ?',
+      [titulo, editorial, anio_publicacion,genre, estado, autor, link, isbn]
     );
 
     if (result.affectedRows === 0) {
