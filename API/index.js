@@ -13,158 +13,17 @@ app.use(express.json());
 // RUTAS PARA USUARIOS
 // ================================
 
-// GET - Obtener todos los usuarios
-app.get("/usuarios", async (req, res) => {
-  try {
-    const [rows] = await pool.execute("SELECT * FROM usuarios");
-    res.json(rows);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al obtener usuarios", details: error.message });
-  }
-});
-
-// GET - Obtener un usuario por ID
-app.get("/usuarios/:id", async (req, res) => {
-  try {
-    const [rows] = await pool.execute(
-      "SELECT * FROM usuarios WHERE id_usuario = ?",
-      [req.params.id]
-    );
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-    res.json(rows[0]);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al obtener usuario", details: error.message });
-  }
-});
-
-// POST - Crear un nuevo usuario
-app.post("/usuarios", async (req, res) => {
-  try {
-    const {
-      nombre_completo,
-      password,
-      identificacion,
-      correo,
-      telefono,
-      role = "lector",
-    } = req.body;
-
-    if (
-      !nombre_completo ||
-      !password ||
-      !identificacion ||
-      !correo ||
-      !telefono ||
-      !role
-    ) {
-      return res.status(400).json({ error: "Ningún campo puede estar vacío." });
-    }
-
-    const createdAt = new Date();
-    const updatedAt = new Date();
-
-    const [result] = await pool.execute(
-      `INSERT INTO usuarios 
-        (nombre_completo, password, identificacion, correo, telefono, role, created_at, update_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        nombre_completo,
-        password,
-        identificacion,
-        correo,
-        telefono,
-        role,
-        createdAt,
-        updatedAt,
-      ]
-    );
-
-    const [newUser] = await pool.execute(
-      "SELECT * FROM usuarios WHERE id_usuario = ?",
-      [result.insertId]
-    );
-
-    res.status(201).json(newUser[0]);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al crear usuario", details: error.message });
-  }
-});
-
-// PUT - Actualizar un usuario
-app.put("/usuarios/:id", async (req, res) => {
-  try {
-    const { nombre_completo, identificacion, correo, telefono } = req.body;
-    const userId = req.params.id;
-
-    if (!nombre_completo || !identificacion || !correo || !telefono) {
-      return res.status(400).json({ error: "Ningun campo puede faltar" });
-    }
-
-    const [result] = await pool.execute(
-      "UPDATE usuarios SET nombre_completo = ?, identificacion = ?, correo = ?, telefono = ? WHERE id_usuario = ?",
-      [nombre_completo, identificacion, correo, telefono, userId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-
-    const [updatedUser] = await pool.execute(
-      "SELECT * FROM usuarios WHERE id_usuario = ?",
-      [userId]
-    );
-
-    res.json(updatedUser[0]);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al actualizar usuario", details: error.message });
-  }
-});
-
-// DELETE - Eliminar un usuario
-app.delete("/usuarios/:id", async (req, res) => {
-  try {
-    const [result] = await pool.execute(
-      "DELETE FROM usuarios WHERE id_usuario = ?",
-      [req.params.id]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-
-    res.json({ message: "Usuario eliminado exitosamente" });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al eliminar usuario", details: error.message });
-  }
-});
-
 // ================================
 // RUTAS PARA LIBROS
 // ================================
 
-// GET - Obtener todos los libros (con autores)
+// GET - Obtener todos los libros
 app.get("/libros", async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
-      SELECT * FROM libros;
-    `);
+    const [rows] = await pool.execute(`SELECT * FROM libros;`);
     res.json(rows);
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al obtener libros", details: error.message });
+    res.status(500).json({ error: "Error al obtener libros", details: error.message });
   }
 });
 
@@ -181,12 +40,9 @@ app.get("/libros/:id", async (req, res) => {
 
     res.json(rows[0]);
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al obtener libro", details: error.message });
+    res.status(500).json({ error: "Error al obtener libro", details: error.message });
   }
 });
-
 // POST - Crear un nuevo libro
 app.post("/libros", async (req, res) => {
   const connection = await pool.getConnection();
@@ -194,35 +50,35 @@ app.post("/libros", async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const {
-      titulo,
-      editorial,
-      anio_publicacion,
-      isbn,
-      estado = "disponible",
-      autor,
-      link,
-    } = req.body;
+    let { titulo, editorial, anio_publicacion, isbn, estado, autor, link, genre } = req.body;
 
     if (!titulo || !isbn) {
-      return res.status(400).json({ error: "El título y isbn son requeridos" });
+      return res.status(400).json({ error: "El título y el ISBN son requeridos" });
     }
+
+    // Convertir campos vacíos o undefined a null
+    editorial = editorial || null;
+    anio_publicacion = anio_publicacion || null;
+    genre = genre || null;
+    estado = estado || null;
+    autor = autor || null;
+    link = link || null;
 
     // Insertar el libro
     const [result] = await connection.execute(
-      "INSERT INTO libros (titulo, editorial, anio_publicacion, isbn, estado, autor, link) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [titulo, editorial, anio_publicacion, isbn, estado, autor, link]
+      `INSERT INTO libros (titulo, editorial, anio_publicacion, isbn, genre, estado, autor, link)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [titulo, editorial, anio_publicacion, isbn, genre, estado, autor, link]
     );
 
     await connection.commit();
+    res.status(201).json({ message: "Libro creado exitosamente" });
   } catch (error) {
     await connection.rollback();
     if (error.code === "ER_DUP_ENTRY") {
       res.status(400).json({ error: "El código del libro ya existe" });
     } else {
-      res
-        .status(500)
-        .json({ error: "Error al crear libro", details: error.message });
+      res.status(500).json({ error: "Error al crear libro", details: error.message });
     }
   } finally {
     connection.release();
@@ -236,19 +92,26 @@ app.put("/libros/:id", async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const { titulo, editorial, anio_publicacion, genre, estado, autor, link } =
-      req.body;
+    let { titulo, editorial, anio_publicacion, genre, estado, autor, link } = req.body;
     const isbn = req.params.id;
 
     if (!titulo || !isbn) {
-      return res
-        .status(400)
-        .json({ error: "El título y código son requeridos" });
+      return res.status(400).json({ error: "El título y el ISBN son requeridos" });
     }
+
+    // Convertir campos vacíos o undefined a null
+    editorial = editorial || null;
+    anio_publicacion = anio_publicacion || null;
+    genre = genre || null;
+    estado = estado || null;
+    autor = autor || null;
+    link = link || null;
 
     // Actualizar el libro
     const [result] = await connection.execute(
-      "UPDATE libros SET titulo = ?, editorial = ?, anio_publicacion = ?,genre = ?, estado = ?, autor = ?, link = ? WHERE isbn = ?",
+      `UPDATE libros 
+       SET titulo = ?, editorial = ?, anio_publicacion = ?, genre = ?, estado = ?, autor = ?, link = ?
+       WHERE isbn = ?`,
       [titulo, editorial, anio_publicacion, genre, estado, autor, link, isbn]
     );
 
@@ -270,21 +133,18 @@ app.put("/libros/:id", async (req, res) => {
     if (error.code === "ER_DUP_ENTRY") {
       res.status(400).json({ error: "El código del libro ya existe" });
     } else {
-      res
-        .status(500)
-        .json({ error: "Error al actualizar libro", details: error.message });
+      res.status(500).json({ error: "Error al actualizar libro", details: error.message });
     }
   } finally {
     connection.release();
   }
 });
 
+
 // DELETE - Eliminar un libro
 app.delete("/libros/:id", async (req, res) => {
   try {
-    const [result] = await pool.execute("DELETE FROM libros WHERE isbn = ?", [
-      req.params.id,
-    ]);
+    const [result] = await pool.execute("DELETE FROM libros WHERE isbn = ?", [req.params.id]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Libro no encontrado" });
@@ -292,11 +152,10 @@ app.delete("/libros/:id", async (req, res) => {
 
     res.json({ message: "Libro eliminado exitosamente" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al eliminar libro", details: error.message });
+    res.status(500).json({ error: "Error al eliminar libro", details: error.message });
   }
 });
+
 // ================================
 // RUTAS PARA INVENTARIO DE USUARIO
 // ================================

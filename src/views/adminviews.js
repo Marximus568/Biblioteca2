@@ -27,8 +27,9 @@ export function adminViews() {
                 <input type="text" id="author" placeholder="Autor" class="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
                 <input type="text" id="editorial" placeholder="Editorial" class="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
                 <input type="number" id="year" placeholder="Año" class="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required min="1000" max="2050">
+                <input type="text" id="genre" placeholder="Género" class="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
                 <input type="text" id="code" placeholder="Código" class="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                <input type="url" id="link" placeholder="Enlace" class="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 md:col-span-2" required>
+                <input type="url" id="link" placeholder="Enlace" class="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 md:col-span-2">
                 <div class="md:col-span-2 flex gap-2">
                     <button type="submit" id="saveBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition flex-1">
                         Guardar Libro
@@ -57,8 +58,9 @@ export function adminViews() {
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Autor</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Editorial</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Año</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Género</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enlace</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="booksTable" class="bg-white divide-y divide-gray-200"></tbody>
@@ -90,5 +92,6 @@ export function adminViews() {
             </div>
         </div>
     </div>
-`;
+</body>
+  `;
 }
