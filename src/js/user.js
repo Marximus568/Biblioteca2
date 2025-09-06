@@ -10,8 +10,6 @@ if (logoutBtn) {
     window.loginUtils.logout();
   });
 }
-
-// Obtener usuario actual
 const user = getCurrentUser();
 if (!user) return "<p>Debes iniciar sesión.</p>";
 
@@ -19,7 +17,7 @@ if (!user) return "<p>Debes iniciar sesión.</p>";
 const CONFIG = {
   API_BASE_URL: 'http://localhost:3000',
   ENDPOINTS: {
-    AVAILABLE_BOOKS: '/libros', // Todos los libros
+    AVAILABLE_BOOKS: '/libros',
     USER_BOOKS: `/usuarios/${user.id_usuario}/libros`
   }
 };
@@ -42,6 +40,12 @@ const DOM = {
     DOM.setContent(messageId, message);
     DOM.show(alertId);
     setTimeout(() => DOM.hide(alertId), 5000);
+  },
+  updateBookCounts: () => {
+    const availableCount = document.getElementById('availableBooksCount');
+    const myBooksCount = document.getElementById('myBooksCount');
+    if (availableCount) availableCount.textContent = AppState.availableBooks.length;
+    if (myBooksCount) myBooksCount.textContent = AppState.userBooks.length;
   }
 };
 
@@ -53,7 +57,26 @@ const API = {
         headers: { 'Content-Type': 'application/json', ...options.headers },
         ...options
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      
+      // Si es un DELETE exitoso, podría no tener JSON válido
+      if (res.status === 200 || res.status === 204) {
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await res.json();
+        }
+        return { success: true };
+      }
+      
+      if (!res.ok) {
+        let errorData;
+        try {
+          errorData = await res.json();
+        } catch (e) {
+          errorData = { error: `HTTP ${res.status}: ${res.statusText}` };
+        }
+        throw new Error(errorData.error || `Error HTTP ${res.status}`);
+      }
+      
       return await res.json();
     } catch (err) {
       console.error('API Error:', err);
@@ -74,6 +97,13 @@ const API = {
       method: 'POST',
       body: JSON.stringify({ isbn })
     });
+  },
+
+  async removeBookFromUser(isbn) {
+    const encodedIsbn = encodeURIComponent(isbn);
+    return await this.request(`/usuarios/${user.id_usuario}/libros/${encodedIsbn}`, {
+      method: 'DELETE'
+    });
   }
 };
 
@@ -81,29 +111,68 @@ const API = {
 const Renderer = {
   createBookCard(book, isUserBook = false) {
     const isAlreadyAdded = AppState.userBooks.some(b => b.isbn === book.isbn);
+
     return `
-      <div class="book-card bg-white rounded-xl shadow-md p-6 border border-gray-200 fade-in">
+      <div class="book-card bg-gray-50 border border-gray-200 rounded-xl p-6 mb-6 hover:shadow-md hover:border-gray-300 transition-all duration-200 fade-in">
         <div class="flex flex-col h-full">
-          <div class="flex-grow space-y-3">
-            <h3 class="text-xl font-semibold text-gray-800 line-clamp-2">${book.titulo}</h3>
+          <div class="flex-grow space-y-4">
+            <h3 class="text-xl font-bold text-gray-800 line-clamp-2 leading-tight">${book.titulo || 'Sin título'}</h3>
             <div class="space-y-2">
-              <p class="text-gray-600"><span class="font-medium">Autor:</span> ${book.autor}</p>
-              <p class="text-gray-600"><span class="font-medium">Año:</span> ${book.año}</p>
-              <p class="text-gray-600"><span class="font-medium">Editorial:</span> ${book.editorial}</p>
-              <p class="text-sm text-gray-500"><span class="font-medium">ISBN:</span> ${book.isbn}</p>
+              <p class="text-gray-600 flex items-start">
+                <span class="font-semibold text-gray-700 w-20 flex-shrink-0">Autor:</span> 
+                <span class="flex-1">${book.autor || 'No especificado'}</span>
+              </p>
+              <p class="text-gray-600 flex items-start">
+                <span class="font-semibold text-gray-700 w-20 flex-shrink-0">Año:</span> 
+                <span class="flex-1">${book.anio_publicacion || 'No especificado'}</span>
+              </p>
+              <p class="text-gray-600 flex items-start">
+                <span class="font-semibold text-gray-700 w-20 flex-shrink-0">Editorial:</span> 
+                <span class="flex-1">${book.editorial || 'No especificado'}</span>
+              </p>
+              ${book.estado ? `
+                <p class="text-blue-600 flex items-start">
+                  <span class="font-semibold text-gray-700 w-20 flex-shrink-0">Estado:</span> 
+                  <span class="flex-1">${book.estado}</span>
+                </p>
+              ` : ''}
+              ${book.genre ? `
+                <p class="text-purple-600 flex items-start">
+                  <span class="font-semibold text-gray-700 w-20 flex-shrink-0">Género:</span> 
+                  <span class="flex-1">${book.genre}</span>
+                </p>
+              ` : ''}
+              <div class="bg-gray-100 px-3 py-2 rounded-lg">
+                <p class="text-sm text-gray-700">
+                  <span class="font-semibold">ISBN:</span> 
+                  <code class="bg-white px-2 py-1 rounded text-xs font-mono">${book.isbn}</code>
+                </p>
+              </div>
             </div>
           </div>
-          <div class="mt-6 pt-4 border-t border-gray-100">
-            ${isUserBook
-              ? `<a href="${book.link}" target="_blank" class="inline-flex items-center justify-center w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                   Ver Detalles
-                 </a>`
-              : `<button 
-                   onclick="BookManager.addToInventory('${book.isbn}')" 
-                   class="add-book-btn w-full px-4 py-2 rounded-lg transition-colors ${isAlreadyAdded ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}" 
-                   ${isAlreadyAdded ? 'disabled' : ''}>
-                   ${isAlreadyAdded ? 'Agregado' : 'Añadir a mi inventario'}
-                 </button>`}
+          <div class="mt-6 pt-4 border-t border-gray-200 space-y-3">
+            ${
+              isUserBook
+                ? `${book.link ? `
+                    <a href="${book.link}" target="_blank" class="inline-flex items-center justify-center w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium">
+                      📖 Ver Detalles del Libro
+                    </a>` : ''}
+                    <button onclick="BookManager.removeFromInventory('${book.isbn}')" class="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium flex items-center justify-center space-x-2">
+                      <span>🗑️</span>
+                      <span>Eliminar de mi biblioteca</span>
+                    </button>`
+                : `<button 
+                     onclick="BookManager.addToInventory('${book.isbn}')" 
+                     class="add-book-btn w-full px-4 py-3 rounded-lg transition-colors duration-200 font-medium flex items-center justify-center space-x-2 ${
+                       isAlreadyAdded 
+                         ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
+                         : 'bg-blue-600 text-white hover:bg-blue-700'
+                     }" 
+                     ${isAlreadyAdded ? 'disabled' : ''}>
+                     <span>${isAlreadyAdded ? '✅' : '➕'}</span>
+                     <span>${isAlreadyAdded ? 'Ya en tu biblioteca' : 'Añadir a mi inventario'}</span>
+                   </button>`
+            }
           </div>
         </div>
       </div>
@@ -113,37 +182,68 @@ const Renderer = {
   renderAvailableBooks(books) {
     const container = document.getElementById('availableBooksContainer');
     if (!books || books.length === 0) {
-      container.innerHTML = `<div class="text-center py-12">
-        <p class="text-gray-500">No se encontraron libros disponibles.</p>
-      </div>`;
+      container.innerHTML = `
+        <div class="text-center py-16">
+          <div class="text-6xl mb-4">📚</div>
+          <p class="text-gray-500 text-xl font-medium">No se encontraron libros disponibles</p>
+          <p class="text-gray-400 text-sm mt-2">Los libros aparecerán aquí cuando estén disponibles</p>
+        </div>
+      `;
       return;
     }
-    container.innerHTML = books.map(book => this.createBookCard(book, false)).join('');
+    container.innerHTML = books
+      .map(book => this.createBookCard(book, false))
+      .join('');
+    DOM.updateBookCounts();
   },
 
   renderUserBooks(books) {
     const container = document.getElementById('myBooksContainer');
     if (!books || books.length === 0) {
-      container.innerHTML = `<div class="text-center py-12">
-        <p class="text-gray-500">Tu biblioteca está vacía.</p>
-      </div>`;
+      container.innerHTML = `
+        <div class="text-center py-16">
+          <div class="text-6xl mb-4">📖</div>
+          <p class="text-gray-500 text-xl font-medium">Tu biblioteca está vacía</p>
+          <p class="text-gray-400 text-sm mt-2">Agrega libros desde la sección de libros disponibles</p>
+          <button onclick="BookManager.loadAvailableBooks()" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
+            Ver libros disponibles
+          </button>
+        </div>
+      `;
       return;
     }
-    container.innerHTML = books.map(book => this.createBookCard(book, true)).join('');
+    container.innerHTML = books
+      .map(book => this.createBookCard(book, true))
+      .join('');
+    DOM.updateBookCounts();
   }
 };
 
-// Gestión principal de libros
 const BookManager = {
   async loadAvailableBooks() {
     try {
       AppState.isLoading = true;
       const books = await API.getAvailableBooks();
-      AppState.availableBooks = books;
-      Renderer.renderAvailableBooks(books);
+      AppState.availableBooks = Array.isArray(books) ? books : [];
+      Renderer.renderAvailableBooks(AppState.availableBooks);
+      
     } catch (err) {
-      console.error('Error loading available books:', err);
+      console.error('Error cargando libros disponibles:', err);
       DOM.showAlert('error', 'Error al cargar los libros disponibles.');
+      
+      const container = document.getElementById('availableBooksContainer');
+      if (container) {
+        container.innerHTML = `
+          <div class="text-center py-16">
+            <div class="text-6xl mb-4 text-red-500">❌</div>
+            <p class="text-red-500 text-xl font-medium">Error al cargar libros</p>
+            <p class="text-gray-500 text-sm mt-2">Verifica tu conexión e intenta nuevamente</p>
+            <button onclick="BookManager.loadAvailableBooks()" class="mt-4 bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors">
+              🔄 Reintentar
+            </button>
+          </div>
+        `;
+      }
     } finally {
       AppState.isLoading = false;
     }
@@ -153,11 +253,26 @@ const BookManager = {
     try {
       AppState.isLoading = true;
       const books = await API.getUserBooks();
-      AppState.userBooks = books;
-      Renderer.renderUserBooks(books);
+      AppState.userBooks = Array.isArray(books) ? books : [];
+      Renderer.renderUserBooks(AppState.userBooks);
+      
     } catch (err) {
-      console.error('Error loading user books:', err);
+      console.error('Error cargando libros del usuario:', err);
       DOM.showAlert('error', 'Error al cargar tus libros.');
+      
+      const container = document.getElementById('myBooksContainer');
+      if (container) {
+        container.innerHTML = `
+          <div class="text-center py-16">
+            <div class="text-6xl mb-4 text-red-500">❌</div>
+            <p class="text-red-500 text-xl font-medium">Error al cargar tu biblioteca</p>
+            <p class="text-gray-500 text-sm mt-2">Verifica tu conexión e intenta nuevamente</p>
+            <button onclick="BookManager.loadUserBooks()" class="mt-4 bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors">
+              🔄 Reintentar
+            </button>
+          </div>
+        `;
+      }
     } finally {
       AppState.isLoading = false;
     }
@@ -165,29 +280,118 @@ const BookManager = {
 
   async addToInventory(isbn) {
     if (AppState.isLoading) return;
+    
+    if (!isbn || typeof isbn !== 'string' || isbn.trim() === '') {
+      DOM.showAlert('error', 'ISBN inválido');
+      return;
+    }
+
     try {
-      await API.addBookToUser(isbn);
-      await this.loadUserBooks();
-      Renderer.renderAvailableBooks(AppState.availableBooks);
-      const book = AppState.availableBooks.find(b => b.isbn === isbn);
-      DOM.showAlert('success', `"${book?.titulo}" ha sido agregado a tu biblioteca.`);
+      AppState.isLoading = true;
+      await API.addBookToUser(isbn.trim());
+
+      await Promise.all([
+        this.loadUserBooks(),
+        this.loadAvailableBooks()
+      ]);
+
+      const book = AppState.userBooks.find(b => b.isbn === isbn.trim());
+      const bookTitle = book?.titulo || `libro con ISBN ${isbn}`;
+      DOM.showAlert('success', `"${bookTitle}" ha sido agregado a tu biblioteca.`);
+      
     } catch (err) {
-      console.error('Error adding book:', err);
-      DOM.showAlert('error', err.message || 'Error al agregar el libro.');
+      console.error('Error agregando libro:', err);
+      
+      let errorMessage = 'Error al agregar el libro';
+      if (err.message.includes('ya tiene este libro')) {
+        errorMessage = 'Ya tienes este libro en tu biblioteca';
+      } else if (err.message.includes('no encontrado')) {
+        errorMessage = 'Libro no encontrado';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      DOM.showAlert('error', errorMessage);
+    } finally {
+      AppState.isLoading = false;
+    }
+  },
+
+  async removeFromInventory(isbn) {
+    if (AppState.isLoading) return;
+    
+    if (!isbn || typeof isbn !== 'string' || isbn.trim() === '') {
+      DOM.showAlert('error', 'ISBN inválido');
+      return;
+    }
+
+    const book = AppState.userBooks.find(b => b.isbn === isbn.trim());
+    const bookTitle = book?.titulo || `libro con ISBN ${isbn}`;
+
+    if (!confirm(`¿Estás seguro de que deseas eliminar "${bookTitle}" de tu biblioteca?`)) {
+      return;
+    }
+
+    try {
+      AppState.isLoading = true;
+      await API.removeBookFromUser(isbn.trim());
+
+      await Promise.all([
+        this.loadUserBooks(),
+        this.loadAvailableBooks()
+      ]);
+
+      DOM.showAlert('success', `"${bookTitle}" ha sido eliminado de tu biblioteca.`);
+      
+    } catch (err) {
+      console.error('Error eliminando libro:', err);
+      
+      let errorMessage = 'Error al eliminar el libro';
+      if (err.message.includes('no encontrado') || err.message.includes('no está asociado')) {
+        errorMessage = 'Este libro no está en tu biblioteca';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      DOM.showAlert('error', errorMessage);
+    } finally {
+      AppState.isLoading = false;
     }
   },
 
   async init() {
-    await Promise.all([this.loadAvailableBooks(), this.loadUserBooks()]);
+    try {
+      await Promise.all([
+        this.loadAvailableBooks(), 
+        this.loadUserBooks()
+      ]);
 
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) logoutBtn.addEventListener('click', () => window.loginUtils.logout());
+      // Event listeners
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          if (window.loginUtils && window.loginUtils.logout) {
+            window.loginUtils.logout();
+          } else {
+            alert('Función de logout no implementada');
+          }
+        });
+      }
 
-    const refreshBooksBtn = document.getElementById('refreshBooksBtn');
-    if (refreshBooksBtn) refreshBooksBtn.addEventListener('click', () => this.loadAvailableBooks());
+      const refreshBooksBtn = document.getElementById('refreshBooksBtn');
+      if (refreshBooksBtn) {
+        refreshBooksBtn.addEventListener('click', () => this.loadAvailableBooks());
+      }
 
-    const refreshMyBooksBtn = document.getElementById('refreshMyBooksBtn');
-    if (refreshMyBooksBtn) refreshMyBooksBtn.addEventListener('click', () => this.loadUserBooks());
+      const refreshMyBooksBtn = document.getElementById('refreshMyBooksBtn');
+      if (refreshMyBooksBtn) {
+        refreshMyBooksBtn.addEventListener('click', () => this.loadUserBooks());
+      }
+
+    } catch (error) {
+      console.error('Error inicializando BookManager:', error);
+      DOM.showAlert('error', 'Error al inicializar la aplicación');
+    }
   }
 };
 
@@ -197,7 +401,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Exponer para los onclick de los botones
-window.BookManager = BookManager;
-
-};
-
+window.BookManager = BookManager;}

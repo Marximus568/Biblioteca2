@@ -1,3 +1,5 @@
+import { redirectIfLoggedIn } from "../tools/tools";
+
 export function settingsregister() {
   // Función principal para manejar el registro de usuarios
   async function handleRegistration(event) {
@@ -96,4 +98,6 @@ export function settingsregister() {
     passwordInput.addEventListener("input", validatePasswords);
     confirmPasswordInput.addEventListener("input", validatePasswords);
   }
+
+  redirectIfLoggedIn();
 }
