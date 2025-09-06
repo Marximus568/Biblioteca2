@@ -1,14 +1,14 @@
-
-import { settingsAdmin } from "../js/admin";
-import { settingLogin } from "../js/login";
-import { userviews } from "../js/user";
-import { adminViews } from "../views/adminviews";
-import { customerViews } from "../views/customerviews";
+import { protectRoute } from "../tools/tools.js"; // o como hayas guardado ese archivo
 import { renderHome } from "../views/home";
 import { login } from "../views/login";
-import { notFound } from "../views/notFound";
 import { register } from "../views/register";
-
+import { adminViews } from "../views/adminviews";
+import { customerViews } from "../views/customerviews";
+import { settingsAdmin } from "../js/admin.js";
+import { settingLogin } from "../js/login.js";
+import { settingsregister } from "../js/register.js";
+import { userviews } from "../js/user.js";
+import { notFound } from "../views/notFound";
 
 const routes = {
   "/": {
@@ -23,45 +23,60 @@ const routes = {
   },
   "/login": {
     showView: login(),
-    afterRender: settingLogin(),
+    afterRender: settingLogin,
     private: false,
   },
   "/register": {
     showView: register(),
-    afterRender: null,
+    afterRender: settingsregister,
     private: false,
   },
-"/customerviews": {
+  "/customerviews": {
     showView: customerViews(),
-    afterRender: userviews(),
-    private: false,
+    afterRender: userviews,
+    private: true,
   },
   "/adminviews": {
     showView: adminViews(),
-    afterRender: settingsAdmin(),
-    private: false,
+    afterRender: settingsAdmin,
+    private: true,
+     requireAdmin: true,
   },
   "/notFound": {
     showView: notFound(),
-    afterRender: "",
+    afterRender: null,
     private: false,
   },
 };
-
 export function router() {
-  //Con la variable path obtienes la url.
   const path = window.location.pathname || "/";
-  //Con esta vaariable obtenemos app que se encuentra en el index
-  const app = document.getElementById('app');
-  //Con esto se conoce cual es la ruta actual para renderizar la vista correspondiente
+  const app = document.getElementById("app");
   const currentRoute = routes[path];
-  
-if (currentRoute) {
-  app.innerHTML = currentRoute.showView;
-  if (typeof currentRoute.after === "function") {
-    currentRoute.afterRender();
-  }
-}else
-  app.innerHTML = notFound();
 
+  if (currentRoute) {
+    // Primero: verificar autenticación
+    if (currentRoute.private && !window.routeProtection.protectRoute()) {
+      return; // redirigido al login
+    }
+
+    // Segundo: verificar permisos especiales (ej. admin)
+    if (currentRoute.requireAdmin && !window.routeProtection.requireAdmin()) {
+      console.warn("Acceso denegado: necesitas ser admin");
+      // Redirigir al home o a un notFound
+      window.history.pushState({}, "", "/notFound");
+      window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
+      return;
+    }
+
+    // Renderizar la vista
+    app.innerHTML = currentRoute.showView;
+
+    // Ejecutar afterRender si existe
+    if (typeof currentRoute.afterRender === "function") {
+      currentRoute.afterRender();
+    }
+  } else {
+    app.innerHTML = notFound();
+  }
 }
+

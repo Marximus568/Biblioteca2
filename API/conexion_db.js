@@ -1,12 +1,14 @@
 
 import mysql from "mysql2/promise";
+import dotenv from "dotenv";
 
+dotenv.config();
 // Configuración de la base de datos
 const dbConfig = {
-  host: "localhost",
-  user: "root",      // 👈 tu usuario
-  password: "1234", // 👈 tu contraseña
-  database: "biblioteca",   // 👈 el nombre de tu base de datos
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER, 
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,   
    connectionLimit: 10, //Controls the number of active connections at the same time
     waitForConnections: true, //When the connection limit is reached, if set to true, users will be placed
     queueLimit: 0 //Maximum number of requests waiting (0 = no limit)

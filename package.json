@@ -16,6 +16,7 @@
     "cors": "^2.8.5",
     "corss": "^2.8.5",
     "csv-parser": "^3.2.0",
+    "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "expresss": "^0.0.0",
     "json-server": "^1.0.0-beta.3",

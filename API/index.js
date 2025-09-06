@@ -40,15 +40,20 @@ app.get('/usuarios/:id', async (req, res) => {
 // POST - Crear un nuevo usuario
 app.post('/usuarios', async (req, res) => {
   try {
-    const { nombre, role = 'lector' } = req.body;
+    const { nombre_completo, password, identificacion, correo, telefono, role = 'lector' } = req.body;
     
-    if (!nombre) {
-      return res.status(400).json({ error: 'El nombre es requerido' });
+    if (!nombre_completo || !password || !identificacion || !correo || !telefono || !role) {
+      return res.status(400).json({ error: 'Ningún campo puede estar vacío.' });
     }
 
+    const createdAt = new Date();
+    const updatedAt = new Date();
+
     const [result] = await pool.execute(
-      'INSERT INTO usuarios (nombre, role) VALUES (?, ?)',
-      [nombre, role]
+      `INSERT INTO usuarios 
+        (nombre_completo, password, identificacion, correo, telefono, role, created_at, update_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre_completo, password, identificacion, correo, telefono, role, createdAt, updatedAt]
     );
 
     const [newUser] = await pool.execute(
@@ -62,19 +67,20 @@ app.post('/usuarios', async (req, res) => {
   }
 });
 
+
 // PUT - Actualizar un usuario
 app.put('/usuarios/:id', async (req, res) => {
   try {
-    const { nombre, role } = req.body;
+    const {  nombre_completo, identificacion, correo, telefono } = req.body;
     const userId = req.params.id;
 
-    if (!nombre) {
-      return res.status(400).json({ error: 'El nombre es requerido' });
+    if (!nombre_completo || !identificacion || !correo || !telefono ) {
+      return res.status(400).json({ error: 'Ningun campo puede faltar' });
     }
 
     const [result] = await pool.execute(
-      'UPDATE usuarios SET nombre = ?, role = ? WHERE id_usuario = ?',
-      [nombre, role, userId]
+      'UPDATE usuarios SET nombre_completo = ?, identificacion = ?, correo = ?, telefono = ? WHERE id_usuario = ?',
+      [nombre_completo, identificacion, correo, telefono, userId]
     );
 
     if (result.affectedRows === 0) {
@@ -108,103 +114,6 @@ app.delete('/usuarios/:id', async (req, res) => {
 });
 
 // ================================
-// RUTAS PARA AUTORES
-// ================================
-
-// GET - Obtener todos los autores
-app.get('/autores', async (req, res) => {
-  try {
-    const [rows] = await pool.execute('SELECT * FROM autores');
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener autores', details: error.message });
-  }
-});
-
-// GET - Obtener un autor por ID
-app.get('/autores/:id', async (req, res) => {
-  try {
-    const [rows] = await pool.execute('SELECT * FROM autores WHERE id_autor = ?', [req.params.id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Autor no encontrado' });
-    }
-    res.json(rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener autor', details: error.message });
-  }
-});
-
-// POST - Crear un nuevo autor
-app.post('/autores', async (req, res) => {
-  try {
-    const { nombre } = req.body;
-    
-    if (!nombre) {
-      return res.status(400).json({ error: 'El nombre es requerido' });
-    }
-
-    const [result] = await pool.execute(
-      'INSERT INTO autores (nombre) VALUES (?)',
-      [nombre]
-    );
-
-    const [newAutor] = await pool.execute(
-      'SELECT * FROM autores WHERE id_autor = ?',
-      [result.insertId]
-    );
-
-    res.status(201).json(newAutor[0]);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al crear autor', details: error.message });
-  }
-});
-
-// PUT - Actualizar un autor
-app.put('/autores/:id', async (req, res) => {
-  try {
-    const { nombre } = req.body;
-    const autorId = req.params.id;
-
-    if (!nombre) {
-      return res.status(400).json({ error: 'El nombre es requerido' });
-    }
-
-    const [result] = await pool.execute(
-      'UPDATE autores SET nombre = ? WHERE id_autor = ?',
-      [nombre, autorId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Autor no encontrado' });
-    }
-
-    const [updatedAutor] = await pool.execute(
-      'SELECT * FROM autores WHERE id_autor = ?',
-      [autorId]
-    );
-
-    res.json(updatedAutor[0]);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar autor', details: error.message });
-  }
-});
-
-// DELETE - Eliminar un autor
-app.delete('/autores/:id', async (req, res) => {
-  try {
-    const [result] = await pool.execute('DELETE FROM autores WHERE id_autor = ?', [req.params.id]);
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Autor no encontrado' });
-    }
-
-    res.json({ message: 'Autor eliminado exitosamente' });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al eliminar autor', details: error.message });
-  }
-});
-
-// ================================
 // RUTAS PARA LIBROS
 // ================================
 
@@ -212,13 +121,7 @@ app.delete('/autores/:id', async (req, res) => {
 app.get('/libros', async (req, res) => {
   try {
     const [rows] = await pool.execute(`
-      SELECT 
-        l.*,
-        GROUP_CONCAT(a.nombre SEPARATOR ', ') as autores
-      FROM libros l
-      LEFT JOIN libro_autor la ON l.id_libro = la.id_libro
-      LEFT JOIN autores a ON la.id_autor = a.id_autor
-      GROUP BY l.id_libro
+      SELECT * FROM libros;
     `);
     res.json(rows);
   } catch (error) {
@@ -226,20 +129,10 @@ app.get('/libros', async (req, res) => {
   }
 });
 
-// GET - Obtener un libro por ID (con autores)
+// GET - Obtener un libro por ID
 app.get('/libros/:id', async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
-      SELECT 
-        l.*,
-        GROUP_CONCAT(a.nombre SEPARATOR ', ') as autores,
-        GROUP_CONCAT(a.id_autor) as ids_autores
-      FROM libros l
-      LEFT JOIN libro_autor la ON l.id_libro = la.id_libro
-      LEFT JOIN autores a ON la.id_autor = a.id_autor
-      WHERE l.id_libro = ?
-      GROUP BY l.id_libro
-    `, [req.params.id]);
+    const [rows] = await pool.execute(`SELECT * FROM libros WHERE isbn = ?`, [req.params.id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Libro no encontrado' });
@@ -258,45 +151,20 @@ app.post('/libros', async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { titulo, editorial, anio_publicacion, codigo, estado = 'disponible', autores = [] } = req.body;
+    const { titulo, editorial, anio_publicacion, isbn, estado = 'disponible', autor, link } = req.body;
     
-    if (!titulo || !codigo) {
-      return res.status(400).json({ error: 'El título y código son requeridos' });
+    if (!titulo || !isbn) {
+      return res.status(400).json({ error: 'El título y isbn son requeridos' });
     }
 
     // Insertar el libro
     const [result] = await connection.execute(
-      'INSERT INTO libros (titulo, editorial, anio_publicacion, codigo, estado) VALUES (?, ?, ?, ?, ?)',
-      [titulo, editorial, anio_publicacion, codigo, estado]
+      'INSERT INTO libros (titulo, editorial, anio_publicacion, isbn, estado, autor, link) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [titulo, editorial, anio_publicacion, isbn, estado, autor, link]
     );
-
-    const libroId = result.insertId;
-
-    // Insertar las relaciones libro-autor
-    if (autores.length > 0) {
-      for (const autorId of autores) {
-        await connection.execute(
-          'INSERT INTO libro_autor (id_libro, id_autor) VALUES (?, ?)',
-          [libroId, autorId]
-        );
-      }
-    }
 
     await connection.commit();
 
-    // Obtener el libro completo con autores
-    const [newLibro] = await pool.execute(`
-      SELECT 
-        l.*,
-        GROUP_CONCAT(a.nombre SEPARATOR ', ') as autores
-      FROM libros l
-      LEFT JOIN libro_autor la ON l.id_libro = la.id_libro
-      LEFT JOIN autores a ON la.id_autor = a.id_autor
-      WHERE l.id_libro = ?
-      GROUP BY l.id_libro
-    `, [libroId]);
-
-    res.status(201).json(newLibro[0]);
   } catch (error) {
     await connection.rollback();
     if (error.code === 'ER_DUP_ENTRY') {
@@ -316,50 +184,31 @@ app.put('/libros/:id', async (req, res) => {
   try {
     await connection.beginTransaction();
     
-    const { titulo, editorial, anio_publicacion, codigo, estado, autores = [] } = req.body;
-    const libroId = req.params.id;
+    const { titulo, editorial, anio_publicacion, genre, estado, autor, link } = req.body;
+    const isbn = req.params.id;
 
-    if (!titulo || !codigo) {
+    if (!titulo || !isbn) {
       return res.status(400).json({ error: 'El título y código son requeridos' });
     }
 
     // Actualizar el libro
     const [result] = await connection.execute(
-      'UPDATE libros SET titulo = ?, editorial = ?, anio_publicacion = ?, codigo = ?, estado = ? WHERE id_libro = ?',
-      [titulo, editorial, anio_publicacion, codigo, estado, libroId]
+      'UPDATE libros SET titulo = ?, editorial = ?, anio_publicacion = ?,genre = ?, estado = ?, autor = ?, link = ? WHERE isbn = ?',
+      [titulo, editorial, anio_publicacion,genre, estado, autor, link, isbn]
     );
 
     if (result.affectedRows === 0) {
+      await connection.rollback();
       return res.status(404).json({ error: 'Libro no encontrado' });
     }
 
-    // Eliminar relaciones existentes
-    await connection.execute('DELETE FROM libro_autor WHERE id_libro = ?', [libroId]);
-
-    // Insertar nuevas relaciones
-    if (autores.length > 0) {
-      for (const autorId of autores) {
-        await connection.execute(
-          'INSERT INTO libro_autor (id_libro, id_autor) VALUES (?, ?)',
-          [libroId, autorId]
-        );
-      }
-    }
+    // Obtener el libro actualizado
+    const [updatedLibro] = await connection.execute(
+      'SELECT * FROM libros WHERE isbn = ?',
+      [isbn]
+    );
 
     await connection.commit();
-
-    // Obtener el libro actualizado
-    const [updatedLibro] = await pool.execute(`
-      SELECT 
-        l.*,
-        GROUP_CONCAT(a.nombre SEPARATOR ', ') as autores
-      FROM libros l
-      LEFT JOIN libro_autor la ON l.id_libro = la.id_libro
-      LEFT JOIN autores a ON la.id_autor = a.id_autor
-      WHERE l.id_libro = ?
-      GROUP BY l.id_libro
-    `, [libroId]);
-
     res.json(updatedLibro[0]);
   } catch (error) {
     await connection.rollback();
@@ -373,10 +222,11 @@ app.put('/libros/:id', async (req, res) => {
   }
 });
 
+
 // DELETE - Eliminar un libro
 app.delete('/libros/:id', async (req, res) => {
   try {
-    const [result] = await pool.execute('DELETE FROM libros WHERE id_libro = ?', [req.params.id]);
+    const [result] = await pool.execute('DELETE FROM libros WHERE isbn = ?', [req.params.id]);
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Libro no encontrado' });
@@ -385,119 +235,6 @@ app.delete('/libros/:id', async (req, res) => {
     res.json({ message: 'Libro eliminado exitosamente' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar libro', details: error.message });
-  }
-});
-
-// ================================
-// RUTAS PARA LIBRO_AUTOR
-// ================================
-
-// GET - Obtener todas las relaciones libro-autor
-app.get('/libro-autor', async (req, res) => {
-  try {
-    const [rows] = await pool.execute(`
-      SELECT 
-        la.*,
-        l.titulo as libro_titulo,
-        a.nombre as autor_nombre
-      FROM libro_autor la
-      JOIN libros l ON la.id_libro = l.id_libro
-      JOIN autores a ON la.id_autor = a.id_autor
-    `);
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener relaciones libro-autor', details: error.message });
-  }
-});
-
-// GET - Obtener autores de un libro específico
-app.get('/libros/:id/autores', async (req, res) => {
-  try {
-    const [rows] = await pool.execute(`
-      SELECT a.*
-      FROM autores a
-      JOIN libro_autor la ON a.id_autor = la.id_autor
-      WHERE la.id_libro = ?
-    `, [req.params.id]);
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener autores del libro', details: error.message });
-  }
-});
-
-// GET - Obtener libros de un autor específico
-app.get('/autores/:id/libros', async (req, res) => {
-  try {
-    const [rows] = await pool.execute(`
-      SELECT l.*
-      FROM libros l
-      JOIN libro_autor la ON l.id_libro = la.id_libro
-      WHERE la.id_autor = ?
-    `, [req.params.id]);
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener libros del autor', details: error.message });
-  }
-});
-
-// POST - Crear relación libro-autor
-app.post('/libro-autor', async (req, res) => {
-  try {
-    const { id_libro, id_autor } = req.body;
-    
-    if (!id_libro || !id_autor) {
-      return res.status(400).json({ error: 'ID del libro y ID del autor son requeridos' });
-    }
-
-    // Verificar si la relación ya existe
-    const [existing] = await pool.execute(
-      'SELECT * FROM libro_autor WHERE id_libro = ? AND id_autor = ?',
-      [id_libro, id_autor]
-    );
-
-    if (existing.length > 0) {
-      return res.status(400).json({ error: 'La relación libro-autor ya existe' });
-    }
-
-    await pool.execute(
-      'INSERT INTO libro_autor (id_libro, id_autor) VALUES (?, ?)',
-      [id_libro, id_autor]
-    );
-
-    const [newRelation] = await pool.execute(`
-      SELECT 
-        la.*,
-        l.titulo as libro_titulo,
-        a.nombre as autor_nombre
-      FROM libro_autor la
-      JOIN libros l ON la.id_libro = l.id_libro
-      JOIN autores a ON la.id_autor = a.id_autor
-      WHERE la.id_libro = ? AND la.id_autor = ?
-    `, [id_libro, id_autor]);
-
-    res.status(201).json(newRelation[0]);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al crear relación libro-autor', details: error.message });
-  }
-});
-
-// DELETE - Eliminar relación libro-autor
-app.delete('/libro-autor/:id_libro/:id_autor', async (req, res) => {
-  try {
-    const { id_libro, id_autor } = req.params;
-    
-    const [result] = await pool.execute(
-      'DELETE FROM libro_autor WHERE id_libro = ? AND id_autor = ?',
-      [id_libro, id_autor]
-    );
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Relación libro-autor no encontrada' });
-    }
-
-    res.json({ message: 'Relación libro-autor eliminada exitosamente' });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al eliminar relación libro-autor', details: error.message });
   }
 });
 
@@ -533,22 +270,32 @@ app.get('/libros/buscar/titulo', async (req, res) => {
 // GET - Obtener libros por estado
 app.get('/libros/estado/:estado', async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
-      SELECT 
-        l.*,
-        GROUP_CONCAT(a.nombre SEPARATOR ', ') as autores
-      FROM libros l
-      LEFT JOIN libro_autor la ON l.id_libro = la.id_libro
-      LEFT JOIN autores a ON la.id_autor = a.id_autor
-      WHERE l.estado = ?
-      GROUP BY l.id_libro
-    `, [req.params.estado]);
+    const estado = req.params.estado;
+
+    const [rows] = await pool.execute(
+      `SELECT 
+         titulo,
+         editorial,
+         anio_publicacion,
+         isbn,
+         estado,
+         autor,
+         link
+       FROM libros
+       WHERE estado = ?`,
+      [estado]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron libros con ese estado' });
+    }
 
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener libros por estado', details: error.message });
   }
 });
+
 
 // Middleware de manejo de errores 404
 app.use((req, res) => {
@@ -566,24 +313,12 @@ app.listen(PORT, () => {
   console.log('  POST   /usuarios');
   console.log('  PUT    /usuarios/:id');
   console.log('  DELETE /usuarios/:id');
-  console.log('\nAUTORES:');
-  console.log('  GET    /autores');
-  console.log('  GET    /autores/:id');
-  console.log('  POST   /autores');
-  console.log('  PUT    /autores/:id');
-  console.log('  DELETE /autores/:id');
   console.log('\nLIBROS:');
   console.log('  GET    /libros');
   console.log('  GET    /libros/:id');
   console.log('  POST   /libros');
   console.log('  PUT    /libros/:id');
   console.log('  DELETE /libros/:id');
-  console.log('\nLIBRO-AUTOR:');
-  console.log('  GET    /libro-autor');
-  console.log('  GET    /libros/:id/autores');
-  console.log('  GET    /autores/:id/libros');
-  console.log('  POST   /libro-autor');
-  console.log('  DELETE /libro-autor/:id_libro/:id_autor');
   console.log('\nBÚSQUEDAS:');
   console.log('  GET    /libros/buscar/titulo?q=texto');
   console.log('  GET    /libros/estado/:estado');
