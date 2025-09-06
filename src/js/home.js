@@ -1,9 +1,21 @@
 export function home()  {
     // Scroll al catálogo al hacer click en "Explorar Catálogo"
-function scrollToCatalog() {
+window.scrollToCatalog = async function() {
   const catalog = document.getElementById('homeBooksContainer');
   catalog.scrollIntoView({ behavior: 'smooth' });
-}
+
+  try {
+    const books = await API.getAvailableBooks();
+    HomeRenderer.renderBooks(books);
+  } catch (err) {
+    console.error('Error cargando libros:', err);
+    catalog.innerHTML = `<div class="text-center py-12 col-span-full">
+      <p class="text-red-500">Error al cargar los libros.</p>
+    </div>`;
+  }
+};
+
+
 
 // API helper
 const API = {
@@ -22,7 +34,8 @@ const HomeRenderer = {
       <div class="flex bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
         <!-- Imagen del libro -->
         <div class="w-24 h-32 flex-shrink-0">
-          <img src="${book.image || 'https://via.placeholder.com/100x150'}" alt="${book.titulo}" class="w-full h-full object-cover">
+          <img src="${book.image || `https://picsum.photos/100/150?random=${Math.floor(Math.random()*1000)}`}" alt="${book.titulo}" class="w-full h-full object-cover">
+
         </div>
         <!-- Información -->
         <div class="p-4 flex flex-col justify-between flex-grow">
@@ -76,4 +89,7 @@ const HomeManager = {
 };
 
 HomeManager.init();
+
+
+
 }
