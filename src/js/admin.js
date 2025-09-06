@@ -103,7 +103,7 @@ function renderBooks() {
             <td class="px-4 py-3">${escapeHtml(book.editorial || '')}</td>
             <td class="px-4 py-3">${book.year || ''}</td>
             <td class="px-4 py-3">${escapeHtml(book.genre || '')}</td>
-            <td class="px-4 py-3">${escapeHtml(book.code || '')}</td>
+            <td class="px-4 py-3">${escapeHtml(book.isbn || '')}</td>
             <td class="px-4 py-3">
                 ${book.link ? `<a href="${book.link}" target="_blank" class="text-blue-500 underline">Ver enlace</a>` : ''}
             </td>
@@ -119,12 +119,12 @@ function renderBooks() {
 async function handleSubmit(e) {
     e.preventDefault();
     const bookData = {
+        isbn: elements.isbn.value.trim(),
         title: elements.title.value.trim(),
         author: elements.author.value.trim(),
         editorial: elements.editorial.value.trim(),
         year: parseInt(elements.year.value),
         genre: elements.genre.value.trim(),
-        code: elements.code.value.trim(),
         link: elements.link.value.trim()
     };
     try {
