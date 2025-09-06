@@ -130,18 +130,6 @@ const Renderer = {
                 <span class="font-semibold text-gray-700 w-20 flex-shrink-0">Editorial:</span> 
                 <span class="flex-1">${book.editorial || 'No especificado'}</span>
               </p>
-              ${book.estado ? `
-                <p class="text-blue-600 flex items-start">
-                  <span class="font-semibold text-gray-700 w-20 flex-shrink-0">Estado:</span> 
-                  <span class="flex-1">${book.estado}</span>
-                </p>
-              ` : ''}
-              ${book.genre ? `
-                <p class="text-purple-600 flex items-start">
-                  <span class="font-semibold text-gray-700 w-20 flex-shrink-0">Género:</span> 
-                  <span class="flex-1">${book.genre}</span>
-                </p>
-              ` : ''}
               <div class="bg-gray-100 px-3 py-2 rounded-lg">
                 <p class="text-sm text-gray-700">
                   <span class="font-semibold">ISBN:</span> 
@@ -155,10 +143,9 @@ const Renderer = {
               isUserBook
                 ? `${book.link ? `
                     <a href="${book.link}" target="_blank" class="inline-flex items-center justify-center w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium">
-                      📖 Ver Detalles del Libro
+                      Ver Detalles del Libro
                     </a>` : ''}
                     <button onclick="BookManager.removeFromInventory('${book.isbn}')" class="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium flex items-center justify-center space-x-2">
-                      <span>🗑️</span>
                       <span>Eliminar de mi biblioteca</span>
                     </button>`
                 : `<button 
@@ -169,7 +156,6 @@ const Renderer = {
                          : 'bg-blue-600 text-white hover:bg-blue-700'
                      }" 
                      ${isAlreadyAdded ? 'disabled' : ''}>
-                     <span>${isAlreadyAdded ? '✅' : '➕'}</span>
                      <span>${isAlreadyAdded ? 'Ya en tu biblioteca' : 'Añadir a mi inventario'}</span>
                    </button>`
             }
@@ -184,7 +170,7 @@ const Renderer = {
     if (!books || books.length === 0) {
       container.innerHTML = `
         <div class="text-center py-16">
-          <div class="text-6xl mb-4">📚</div>
+          <div class="text-6xl mb-4"></div>
           <p class="text-gray-500 text-xl font-medium">No se encontraron libros disponibles</p>
           <p class="text-gray-400 text-sm mt-2">Los libros aparecerán aquí cuando estén disponibles</p>
         </div>
@@ -202,7 +188,7 @@ const Renderer = {
     if (!books || books.length === 0) {
       container.innerHTML = `
         <div class="text-center py-16">
-          <div class="text-6xl mb-4">📖</div>
+          <div class="text-6xl mb-4"></div>
           <p class="text-gray-500 text-xl font-medium">Tu biblioteca está vacía</p>
           <p class="text-gray-400 text-sm mt-2">Agrega libros desde la sección de libros disponibles</p>
           <button onclick="BookManager.loadAvailableBooks()" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
@@ -235,11 +221,11 @@ const BookManager = {
       if (container) {
         container.innerHTML = `
           <div class="text-center py-16">
-            <div class="text-6xl mb-4 text-red-500">❌</div>
+            <div class="text-6xl mb-4 text-red-500"></div>
             <p class="text-red-500 text-xl font-medium">Error al cargar libros</p>
             <p class="text-gray-500 text-sm mt-2">Verifica tu conexión e intenta nuevamente</p>
             <button onclick="BookManager.loadAvailableBooks()" class="mt-4 bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors">
-              🔄 Reintentar
+               Reintentar
             </button>
           </div>
         `;
@@ -264,11 +250,11 @@ const BookManager = {
       if (container) {
         container.innerHTML = `
           <div class="text-center py-16">
-            <div class="text-6xl mb-4 text-red-500">❌</div>
+            <div class="text-6xl mb-4 text-red-500"></div>
             <p class="text-red-500 text-xl font-medium">Error al cargar tu biblioteca</p>
             <p class="text-gray-500 text-sm mt-2">Verifica tu conexión e intenta nuevamente</p>
             <button onclick="BookManager.loadUserBooks()" class="mt-4 bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors">
-              🔄 Reintentar
+               Reintentar
             </button>
           </div>
         `;
