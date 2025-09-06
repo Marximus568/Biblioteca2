@@ -241,45 +241,52 @@ app.delete('/libros/:id', async (req, res) => {
 // RUTAS PARA INVENTARIO DE USUARIO
 // ================================
 
+
 // GET - Obtener libros de un usuario
-app.get('/usuarios/:id/libros', async (req, res) => {
+app.get('/usuarios/:id_usuario/libros', async (req, res) => {
   try {
-    const userId = req.params.id;
+    const userId = req.params.id_usuario;
+
     const [rows] = await pool.execute(
       `SELECT l.* 
-       FROM usuarios_libros ul
-       JOIN libros l ON ul.isbn = l.isbn
+       FROM libros l
+       INNER JOIN usuario_libros ul ON l.isbn = ul.isbn
        WHERE ul.id_usuario = ?`,
       [userId]
     );
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener libros del usuario', details: error.message });
+
+    // Devuelve array vacío si no hay libros
+    res.json(rows || []);
+  } catch (err) {
+    console.error('Error al obtener libros del usuario:', err);
+    res.status(500).json({ error: 'Error al obtener los libros del usuario', details: err.message });
   }
 });
 
-// POST - Agregar libro al inventario de un usuario
-app.post('/usuarios/:id/libros', async (req, res) => {
+
+// POST - Agregar libro al inventario del usuario
+app.post('/usuarios/:id_usuario/libros', async (req, res) => {
   try {
-    const userId = req.params.id;
+    const id_usuario = req.params.id_usuario;
     const { isbn } = req.body;
 
-    if (!isbn) {
-      return res.status(400).json({ error: 'El campo isbn es requerido' });
-    }
+    // Verificar que el libro existe
+    const [libro] = await pool.execute('SELECT * FROM libros WHERE isbn = ?', [isbn]);
+    if (libro.length === 0) return res.status(404).json({ error: 'Libro no encontrado' });
 
-    await pool.execute(
-      'INSERT INTO usuarios_libros (id_usuario, isbn) VALUES (?, ?)',
-      [userId, isbn]
-    );
-
-    res.status(201).json({ message: 'Libro agregado al inventario del usuario' });
-  } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
-      res.status(400).json({ error: 'El libro ya está en el inventario del usuario' });
-    } else {
-      res.status(500).json({ error: 'Error al agregar libro', details: error.message });
+    // Insertar en usuario_libros (maneja duplicados)
+    try {
+      await pool.execute('INSERT INTO usuario_libros (id_usuario, isbn) VALUES (?, ?)', [id_usuario, isbn]);
+      res.json({ message: 'Libro agregado al usuario' });
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        res.status(400).json({ error: 'El usuario ya tiene este libro' });
+      } else {
+        throw err;
+      }
     }
+  } catch (err) {
+    res.status(500).json({ error: 'Error agregando libro al usuario', details: err.message });
   }
 });
 
@@ -407,7 +414,7 @@ app.get('/libros/buscar/titulo', async (req, res) => {
 });
 
 // GET - Obtener libros por estado
-app.get('/libros/estado/:estado', async (req, res) => {
+app.get('/libros/:estado', async (req, res) => {
   try {
     const estado = req.params.estado;
 
