@@ -19,7 +19,7 @@ export function protectRoute() {
   return true;
 }
 
-function initLogin() {
+export function initLogin() {
   const loginForm = document.getElementById('loginForm');
   if (loginForm) {
     loginForm.addEventListener('submit', handleLogin);
@@ -27,12 +27,12 @@ function initLogin() {
 }
 
 // Funciones de utilidad para verificar autenticación
-function isAuthenticated() {
+export function isAuthenticated() {
   return localStorage.getItem('isAuthenticated') === 'true';
 }
 
 // Función para obtener el usuario actual
-function getCurrentUser() {
+export function getCurrentUser() {
   const userData = localStorage.getItem('currentUser');
   return userData ? JSON.parse(userData) : null;
 }

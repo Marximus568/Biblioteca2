@@ -1,5 +1,4 @@
 
-DROP DATABASE IF EXISTS biblioteca;
 CREATE DATABASE biblioteca;
 use biblioteca;
 
@@ -7,6 +6,7 @@ DROP TABLE IF EXISTS usuarios;
 CREATE TABLE usuarios(
 id_usuario INT PRIMARY KEY AUTO_INCREMENT,
 nombre_completo VARCHAR(225),
+password VARCHAR(225),
 identificacion INT UNIQUE,
 correo VARCHAR(225),
 telefono VARCHAR(225),
@@ -50,7 +50,11 @@ FOREIGN KEY (id_estado) REFERENCES estados(id_estado) ON DELETE SET NULL ON UPDA
 );
 
 
-
-
-
+CREATE TABLE usuario_libros (
+  id_usuario INT NOT NULL,
+  isbn VARCHAR(50) NOT NULL,
+  PRIMARY KEY (id_usuario, isbn),
+  FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
+  FOREIGN KEY (isbn) REFERENCES libros(isbn) ON DELETE CASCADE
+);
 
