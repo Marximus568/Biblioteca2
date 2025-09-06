@@ -1,4 +1,16 @@
+import { getCurrentUser } from "../tools/tools";
+
 export function settingsAdmin() {
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      window.loginUtils.logout();
+    });
+  }
+  const user = getCurrentUser ();
+  if (!user) return "<p>Debes iniciar sesión.</p>";
+
   // --- Configuración API ---
   const API_BASE_URL = "http://localhost:3000";
   const API_BOOKS_URL = `${API_BASE_URL}/libros`;
@@ -87,6 +99,7 @@ export function settingsAdmin() {
       showLoading(false);
     }
   }
+
   function renderBooks() {
     const tbody = elements.booksTable;
     tbody.innerHTML = "";
@@ -104,10 +117,7 @@ export function settingsAdmin() {
             <td class="px-4 py-3">${escapeHtml(book.autor || "")}</td>
             <td class="px-4 py-3">${escapeHtml(book.editorial || "")}</td>
             <td class="px-4 py-3">${book.anio_publicacion || ""}</td>
-            <td class="px-4 py-3">${escapeHtml(
-              book.genero || ""
-            )}</td> <!-- Agregado -->
-            <td class="px-4 py-3">${escapeHtml(book.isbn || "")}</td>
+            <td class="px-4 py-3">${escapeHtml(book.genero || "")}</td>
             <td class="px-4 py-3">
                 ${
                   book.link
@@ -132,63 +142,46 @@ export function settingsAdmin() {
   // --- Crear/editar libro ---
   async function handleSubmit(e) {
     e.preventDefault();
-    const bookData = {
-      isbn: elements.code.value.trim(),
-      titulo: elements.title.value.trim(),
-      autor: elements.author.value.trim(),
-      editorial: elements.editorial.value.trim(),
-      anio_publicacion: parseInt(elements.year.value),
-      genero: elements.genre.value.trim(),
-      estado: "disponible",
-      link: elements.link.value.trim(),
-    };
-    try {
-      let resp;
-      if (editingBookId) {
-        resp = await fetch(`${API_BOOKS_URL}/${editingBookId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bookData),
-        });
-      } else {
-        resp = await fetch(API_BOOKS_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bookData),
-        });
-      }
-      await handleFetchResponse(resp);
-      hideForm();
-      loadBooks();
-      showNotification(
-        editingBookId ? "Libro actualizado" : "Libro creado",
-        "success"
-      );
-    } catch (err) {
-      console.error("Error guardando libro", err);
-      showNotification("Error guardando libro", "error");
+    
+  const bookData = {
+    isbn: elements.code.value.trim(),
+    titulo: elements.title.value.trim(),
+    autor: elements.author.value.trim() || null,
+    editorial: elements.editorial.value.trim() || null,
+    anio_publicacion: parseInt(elements.year.value) || null,
+    genre: elements.genre?.value.trim() || null,
+    estado: "disponible",
+    link: elements.link.value.trim() || null,
+  };
+
+  try {
+    let resp;
+    if (editingBookId) {
+      resp = await fetch(`${API_BOOKS_URL}/${editingBookId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookData),
+      });
+    } else {
+      resp = await fetch(API_BOOKS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookData),
+      });
     }
-  }
 
-  function showEditForm(book) {
-    editingBookId = book.isbn;
-    elements.formTitle.textContent = "Editar Libro";
-    elements.formContainer.classList.remove("hidden");
-    elements.bookId.value = book.isbn;
-    elements.title.value = book.titulo;
-    elements.author.value = book.autor;
-    elements.editorial.value = book.editorial;
-    elements.year.value = book.anio_publicacion;
-    elements.code.value = book.isbn;
-    elements.link.value = book.link;
+    await handleFetchResponse(resp);
+    hideForm();
+    loadBooks();
+    showNotification(
+      editingBookId ? "Libro actualizado" : "Libro creado",
+      "success"
+    );
+  } catch (err) {
+    console.error("Error guardando libro", err);
+    showNotification("Error guardando libro", "error");
   }
-
-  function showCreateForm() {
-    editingBookId = null;
-    elements.formTitle.textContent = "Agregar Nuevo Libro";
-    elements.formContainer.classList.remove("hidden");
-    elements.bookForm.reset();
-  }
+}
 
   function showEditForm(book) {
     editingBookId = book.isbn;
@@ -204,6 +197,13 @@ export function settingsAdmin() {
     elements.link.value = book.link;
   }
 
+  function showCreateForm() {
+    editingBookId = null;
+    elements.formTitle.textContent = "Agregar Nuevo Libro";
+    elements.formContainer.classList.remove("hidden");
+    elements.bookForm.reset();
+  }
+
   function hideForm() {
     elements.formContainer.classList.add("hidden");
     editingBookId = null;
@@ -213,10 +213,12 @@ export function settingsAdmin() {
     const b = books.find((x) => x.isbn == isbn);
     if (b) showEditForm(b);
   }
+
   function deleteBook(isbn) {
     bookToDelete = isbn;
     elements.confirmModal.classList.remove("hidden");
   }
+
   async function confirmDelete() {
     if (!bookToDelete) return;
     try {
@@ -232,10 +234,12 @@ export function settingsAdmin() {
       hideConfirmModal();
     }
   }
+
   function hideConfirmModal() {
     elements.confirmModal.classList.add("hidden");
     bookToDelete = null;
   }
+
   function escapeHtml(txt) {
     const map = {
       "&": "&amp;",
@@ -257,10 +261,12 @@ export function settingsAdmin() {
     elements.notification.classList.remove("hidden");
     setTimeout(() => elements.notification.classList.add("hidden"), 5000);
   }
+
   function showLoading(show) {
     if (show) elements.loadingSpinner.classList.remove("hidden");
     else elements.loadingSpinner.classList.add("hidden");
   }
+
   function handleLogout() {
     if (confirm("¿Cerrar sesión?")) window.location.href = "/login";
   }
@@ -271,18 +277,13 @@ export function settingsAdmin() {
     await setupEventListeners();
     await loadBooks();
   }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initializeApp);
   } else {
     initializeApp();
   }
+
   window.editBook = editBook;
   window.deleteBook = deleteBook;
-
-  const btn = document.getElementById("logoutBtn");
-  if (btn) {
-    btn.addEventListener("click", () => {
-      window.loginUtils.logout();
-    });
-  }
 }

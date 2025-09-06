@@ -79,3 +79,25 @@ window.routeProtection = {
   protectRoute,
   requireAdmin
 };
+
+
+export function redirectIfLoggedIn() {
+  const userJSON = localStorage.getItem('currentUser');
+  
+  if (!userJSON) return; // No hay usuario logueado, no hace nada
+  
+  try {
+    const user = JSON.parse(userJSON);
+
+    // Aquí decides la ruta según rol o si es cliente/administrador
+    if (user.role === 'admin') {
+      window.location.href = '/adminviews'; // ejemplo para admin
+    } else {
+      window.location.href = '/customerviews'; // ejemplo para usuario normal
+    }
+
+  } catch (err) {
+    console.error('Error parsing user from localStorage', err);
+    localStorage.removeItem('currentUser'); // limpiar dato corrupto
+  }
+}

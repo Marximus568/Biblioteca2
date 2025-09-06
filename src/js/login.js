@@ -1,3 +1,4 @@
+import { redirectIfLoggedIn } from "../tools/tools";
 
 export function settingLogin(){
   // login.js - Lógica de autenticación para SPA
@@ -199,4 +200,6 @@ async function handleLogin(event) {
   } else {
     console.error("No se encontró el formulario de login ");
   }
+
+  redirectIfLoggedIn();
 }
