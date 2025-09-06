@@ -13,8 +13,6 @@ FRONTEND:
 -JAVASCRIPT
 -VITE
 
-BACKEND:
--Postgres
 
 
 

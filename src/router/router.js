@@ -9,6 +9,7 @@ import { settingLogin } from "../js/login.js";
 import { settingsregister } from "../js/register.js";
 import { userviews } from "../js/user.js";
 import { notFound } from "../views/notFound";
+import { home } from "../js/home.js";
 
 const routes = {
   "/": {
@@ -18,7 +19,7 @@ const routes = {
   },
   "/home": {
     showView: renderHome(),
-    afterRender: null,
+    afterRender: home,
     private: false,
   },
   "/login": {
