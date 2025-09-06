@@ -1,3 +1,4 @@
+
 export function adminViews() {
   return `
 <body class="bg-gray-100 p-6">
@@ -92,5 +93,4 @@ export function adminViews() {
             </div>
         </div>
     </div>
-`;
-}
+`}

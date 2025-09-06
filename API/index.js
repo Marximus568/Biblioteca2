@@ -40,15 +40,20 @@ app.get('/usuarios/:id', async (req, res) => {
 // POST - Crear un nuevo usuario
 app.post('/usuarios', async (req, res) => {
   try {
-    const { nombre_completo, identificacion, correo, telefono, role = 'lector' } = req.body;
+    const { nombre_completo, password, identificacion, correo, telefono, role = 'lector' } = req.body;
     
-    if (!nombre_completo || !identificacion || !correo || !telefono || !role) {
-      return res.status(400).json({ error: 'Ningun campo puede estar vacio.' });
+    if (!nombre_completo || !password || !identificacion || !correo || !telefono || !role) {
+      return res.status(400).json({ error: 'Ningún campo puede estar vacío.' });
     }
 
+    const createdAt = new Date();
+    const updatedAt = new Date();
+
     const [result] = await pool.execute(
-      'INSERT INTO usuarios (nombre_completo, identificacion, correo, telefono, role) VALUES (?, ?, ?, ?, ?)',
-      [nombre_completo, identificacion, correo, telefono, role]
+      `INSERT INTO usuarios 
+        (nombre_completo, password, identificacion, correo, telefono, role, created_at, update_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre_completo, password, identificacion, correo, telefono, role, createdAt, updatedAt]
     );
 
     const [newUser] = await pool.execute(
@@ -61,6 +66,7 @@ app.post('/usuarios', async (req, res) => {
     res.status(500).json({ error: 'Error al crear usuario', details: error.message });
   }
 });
+
 
 // PUT - Actualizar un usuario
 app.put('/usuarios/:id', async (req, res) => {
