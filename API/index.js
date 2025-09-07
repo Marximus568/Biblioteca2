@@ -12,7 +12,142 @@ app.use(express.json());
 // ================================
 // RUTAS PARA USUARIOS
 // ================================
+// GET - Obtener todos los usuarios
+app.get("/usuarios", async (req, res) => {
+  try {
+    const [rows] = await pool.execute("SELECT * FROM usuarios");
+    res.json(rows);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Error al obtener usuarios", details: error.message });
+  }
+});
 
+// GET - Obtener un usuario por ID
+app.get("/usuarios/:id", async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT * FROM usuarios WHERE id_usuario = ?",
+      [req.params.id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Error al obtener usuario", details: error.message });
+  }
+});
+
+// POST - Crear un nuevo usuario
+app.post("/usuarios", async (req, res) => {
+  try {
+    const {
+      nombre_completo,
+      password,
+      identificacion,
+      correo,
+      telefono,
+      role = "lector",
+    } = req.body;
+
+    if (
+      !nombre_completo ||
+      !password ||
+      !identificacion ||
+      !correo ||
+      !telefono ||
+      !role
+    ) {
+      return res.status(400).json({ error: "Ningún campo puede estar vacío." });
+    }
+
+    const createdAt = new Date();
+    const updatedAt = new Date();
+
+    const [result] = await pool.execute(
+      `INSERT INTO usuarios 
+        (nombre_completo, password, identificacion, correo, telefono, role, created_at, update_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        nombre_completo,
+        password,
+        identificacion,
+        correo,
+        telefono,
+        role,
+        createdAt,
+        updatedAt,
+      ]
+    );
+
+    const [newUser] = await pool.execute(
+      "SELECT * FROM usuarios WHERE id_usuario = ?",
+      [result.insertId]
+    );
+
+    res.status(201).json(newUser[0]);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Error al crear usuario", details: error.message });
+  }
+});
+
+// PUT - Actualizar un usuario
+app.put("/usuarios/:id", async (req, res) => {
+  try {
+    const { nombre_completo, identificacion, correo, telefono } = req.body;
+    const userId = req.params.id;
+
+    if (!nombre_completo || !identificacion || !correo || !telefono) {
+      return res.status(400).json({ error: "Ningun campo puede faltar" });
+    }
+
+    const [result] = await pool.execute(
+      "UPDATE usuarios SET nombre_completo = ?, identificacion = ?, correo = ?, telefono = ? WHERE id_usuario = ?",
+      [nombre_completo, identificacion, correo, telefono, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    const [updatedUser] = await pool.execute(
+      "SELECT * FROM usuarios WHERE id_usuario = ?",
+      [userId]
+    );
+
+    res.json(updatedUser[0]);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Error al actualizar usuario", details: error.message });
+  }
+});
+
+// DELETE - Eliminar un usuario
+app.delete("/usuarios/:id", async (req, res) => {
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM usuarios WHERE id_usuario = ?",
+      [req.params.id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    res.json({ message: "Usuario eliminado exitosamente" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Error al eliminar usuario", details: error.message });
+  }
+});
 // ================================
 // RUTAS PARA LIBROS
 // ================================
